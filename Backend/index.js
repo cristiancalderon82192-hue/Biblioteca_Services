@@ -29,18 +29,24 @@ app.get('/api/health', (req, res) => {
 
 // Diagnóstico de base de datos en la nube (Render / Aiven)
 app.get('/api/debug-db', async (req, res) => {
+    const pool = require('./db');
     try {
-        const pool = require('./db');
         const [tables] = await pool.query('SHOW TABLES');
         res.status(200).json({
             status: 'Conectado a MySQL exitosamente',
+            host: pool.pool?.config?.connectionConfig?.host,
+            puerto: pool.pool?.config?.connectionConfig?.port,
             tablas_encontradas: tables.map(t => Object.values(t)[0])
         });
     } catch (err) {
         res.status(500).json({
             status: 'Error conectando a MySQL',
             mensaje: err.message,
-            codigo: err.code
+            codigo: err.code,
+            host_intentado: pool.pool?.config?.connectionConfig?.host || 'desconocido',
+            puerto_intentado: pool.pool?.config?.connectionConfig?.port || 'desconocido',
+            tiene_DATABASE_URL_en_Render: Boolean(process.env.DATABASE_URL),
+            longitud_DATABASE_URL: process.env.DATABASE_URL ? process.env.DATABASE_URL.length : 0
         });
     }
 });
