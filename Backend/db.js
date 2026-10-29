@@ -5,14 +5,33 @@ let poolConfig;
 
 // Soporte para URL completa de Aiven / Cloud MySQL (DATABASE_URL o MYSQL_URL)
 if (process.env.DATABASE_URL || process.env.MYSQL_URL) {
-    const connectionUri = process.env.DATABASE_URL || process.env.MYSQL_URL;
-    poolConfig = {
-        uri: connectionUri,
-        ssl: { rejectUnauthorized: false },
-        waitForConnections: true,
-        connectionLimit: 10,
-        queueLimit: 0
-    };
+    const rawUri = (process.env.DATABASE_URL || process.env.MYSQL_URL).trim();
+    try {
+        const parsed = new URL(rawUri);
+        poolConfig = {
+            host: parsed.hostname,
+            port: parsed.port ? parseInt(parsed.port, 10) : 3306,
+            user: decodeURIComponent(parsed.username || 'avnadmin'),
+            password: decodeURIComponent(parsed.password || ''),
+            database: parsed.pathname ? parsed.pathname.replace(/^\//, '') : 'defaultdb',
+            ssl: { rejectUnauthorized: false },
+            waitForConnections: true,
+            connectionLimit: 10,
+            queueLimit: 0,
+            connectTimeout: 30000
+        };
+        console.log(`[DB] Conectando a MySQL en ${poolConfig.host}:${poolConfig.port}/${poolConfig.database}`);
+    } catch (e) {
+        console.warn('[DB] Fallback a URI directa:', e.message);
+        poolConfig = {
+            uri: rawUri,
+            ssl: { rejectUnauthorized: false },
+            waitForConnections: true,
+            connectionLimit: 10,
+            queueLimit: 0,
+            connectTimeout: 30000
+        };
+    }
 } else {
     // Configuración por variables individuales (Aiven, Render o Localhost)
     const useSSL = process.env.DB_SSL === 'true' || (process.env.DB_HOST && !process.env.DB_HOST.includes('localhost') && !process.env.DB_HOST.includes('127.0.0.1'));
@@ -26,8 +45,10 @@ if (process.env.DATABASE_URL || process.env.MYSQL_URL) {
         waitForConnections: true,
         connectionLimit: 10,
         queueLimit: 0,
+        connectTimeout: 30000,
         ...(useSSL ? { ssl: { rejectUnauthorized: false } } : {})
     };
+    console.log(`[DB] Conectando a MySQL en ${poolConfig.host}:${poolConfig.port}/${poolConfig.database}`);
 }
 
 const pool = mysql.createPool(poolConfig);
