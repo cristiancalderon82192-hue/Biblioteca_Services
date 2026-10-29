@@ -27,6 +27,37 @@ app.get('/api/health', (req, res) => {
     res.status(200).json({ status: 'OK', timestamp: new Date().toISOString() });
 });
 
+// Diagnóstico de base de datos en la nube (Render / Aiven)
+app.get('/api/debug-db', async (req, res) => {
+    try {
+        const pool = require('./db');
+        const [tables] = await pool.query('SHOW TABLES');
+        res.status(200).json({
+            status: 'Conectado a MySQL exitosamente',
+            tablas_encontradas: tables.map(t => Object.values(t)[0])
+        });
+    } catch (err) {
+        res.status(500).json({
+            status: 'Error conectando a MySQL',
+            mensaje: err.message,
+            codigo: err.code
+        });
+    }
+});
+
+// Forzar migración y creación de tablas y datos semilla bajo demanda
+app.get('/api/debug-migrate', async (req, res) => {
+    try {
+        const resultado = await autoMigrateDatabase(3);
+        res.status(200).json({
+            mensaje: 'Migración ejecutada',
+            resultado
+        });
+    } catch (err) {
+        res.status(500).json({ error: err.message });
+    }
+});
+
 // Endpoints del sistema
 app.use('/api/auth', authRoutes);
 app.use('/api/admins', adminsRoutes);

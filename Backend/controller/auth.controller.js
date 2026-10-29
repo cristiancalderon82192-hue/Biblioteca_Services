@@ -52,7 +52,7 @@ const login = async (req, res) => {
 
     } catch (error) {
         console.error('Error en autenticación de administrador:', error);
-        res.status(500).json({ error: 'Error interno del servidor al procesar el inicio de sesión.' });
+        res.status(500).json({ error: error.message || 'Error interno del servidor al procesar el inicio de sesión.' });
     }
 };
 

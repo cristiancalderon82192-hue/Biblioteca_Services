@@ -49,8 +49,8 @@ const obtenerLibros = async (req, res) => {
         const [libros] = await pool.query(query, params);
         res.status(200).json(libros);
     } catch (error) {
-        console.error(error);
-        res.status(500).json({ error: 'Error al obtener los libros' });
+        console.error('Error al obtener los libros:', error);
+        res.status(500).json({ error: error.message || 'Error al obtener los libros' });
     }
 };
 
